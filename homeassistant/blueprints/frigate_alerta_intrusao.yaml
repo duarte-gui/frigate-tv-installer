@@ -1,0 +1,92 @@
+blueprint:
+  name: Frigate — alerta de intrusão (alarme + sensor → overlay + Alexa)
+  description: >
+    Quando o ALARME está armado e um sensor dispara, mostra a câmera no overlay da
+    TV e faz a Alexa anunciar um alerta nas Echos escolhidas. Requer o package
+    frigate_pip (script pip_mostrar) e a integração alexa_devices (entidades notify).
+  domain: automation
+  author: duarte-gui
+  source_url: https://github.com/duarte-gui/frigate-tv-installer/blob/master/homeassistant/blueprints/frigate_alerta_intrusao.yaml
+  input:
+    sensors:
+      name: Sensores de disparo
+      description: Um ou mais (portão, presença…). Dispara quando qualquer um vai p/ "on".
+      selector:
+        entity:
+          domain: binary_sensor
+          multiple: true
+    alarm:
+      name: Painel de alarme
+      selector:
+        entity:
+          domain: alarm_control_panel
+    armed_states:
+      name: Estados considerados "armado"
+      default: ["armed_away", "armed_home", "armed_night", "triggered"]
+      selector:
+        select:
+          multiple: true
+          options:
+            - armed_away
+            - armed_home
+            - armed_night
+            - armed_vacation
+            - triggered
+    camera_stream:
+      name: Stream da câmera (go2rtc)
+      selector:
+        text: {}
+    announce_targets:
+      name: Alvos do anúncio (notify.*_announce)
+      description: Entidades notify das Echos (individuais; o grupo "todo lugar" costuma ficar offline).
+      selector:
+        entity:
+          domain: notify
+          multiple: true
+    message:
+      name: Mensagem do alerta
+      default: "Alguém não autorizado está na garagem! ALERTA!"
+      selector:
+        text: {}
+    repeat_count:
+      name: Repetições do anúncio
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 10
+          mode: slider
+
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: !input sensors
+    to: "on"
+
+condition:
+  - condition: state
+    entity_id: !input alarm
+    state: !input armed_states
+
+variables:
+  announce_targets: !input announce_targets
+  message: !input message
+
+action:
+  - service: script.pip_mostrar
+    data:
+      cam: !input camera_stream
+  - repeat:
+      count: !input repeat_count
+      sequence:
+        - repeat:
+            for_each: "{{ announce_targets }}"
+            sequence:
+              - service: notify.send_message
+                continue_on_error: true
+                target:
+                  entity_id: "{{ repeat.item }}"
+                data:
+                  message: "{{ message }}"
+        - delay: "00:00:06"

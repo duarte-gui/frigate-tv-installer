@@ -1,0 +1,36 @@
+blueprint:
+  name: Frigate — câmera por voz (input_boolean → overlay)
+  description: >
+    Liga/desliga o overlay da câmera conforme um input_boolean (exposto à Alexa
+    como interruptor). "Alexa, ligar/desligar câmera X". Requer o package
+    frigate_pip (scripts pip_mostrar / pip_desligar).
+  domain: automation
+  author: duarte-gui
+  source_url: https://github.com/duarte-gui/frigate-tv-installer/blob/master/homeassistant/blueprints/frigate_camera_por_voz.yaml
+  input:
+    toggle:
+      name: Interruptor (input_boolean)
+      description: O boolean exposto à Alexa para esta câmera.
+      selector:
+        entity:
+          domain: input_boolean
+    camera_stream:
+      name: Stream da câmera (go2rtc)
+      selector:
+        text: {}
+
+mode: restart
+
+trigger:
+  - platform: state
+    entity_id: !input toggle
+
+action:
+  - choose:
+      - conditions: "{{ trigger.to_state.state == 'on' }}"
+        sequence:
+          - service: script.pip_mostrar
+            data:
+              cam: !input camera_stream
+    default:
+      - service: script.pip_desligar

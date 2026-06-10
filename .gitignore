@@ -1,0 +1,11 @@
+# Segredos / config local — NUNCA versionar
+config.env
+*.apk
+secrets.yaml
+.env
+
+# Lixo
+*.log
+__pycache__/
+.DS_Store
+.aws-sam/

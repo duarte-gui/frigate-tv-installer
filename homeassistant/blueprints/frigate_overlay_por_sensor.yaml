@@ -1,0 +1,49 @@
+blueprint:
+  name: Frigate — overlay por sensor
+  description: >
+    Mostra a câmera do Frigate no overlay/PIP da TV quando um sensor (porta,
+    presença, etc.) dispara. Requer o package frigate_pip (scripts pip_mostrar).
+  domain: automation
+  author: duarte-gui
+  source_url: https://github.com/duarte-gui/frigate-tv-installer/blob/master/homeassistant/blueprints/frigate_overlay_por_sensor.yaml
+  input:
+    sensor:
+      name: Sensor de disparo
+      description: Quando ele vai para "on", a câmera aparece.
+      selector:
+        entity:
+          domain: binary_sensor
+    camera_stream:
+      name: Stream da câmera (go2rtc)
+      description: Nome do stream no Frigate/go2rtc, ex. garagem_sub
+      selector:
+        text: {}
+    tv_player:
+      name: Player da TV (opcional)
+      description: Se definido, só mostra quando a TV NÃO estiver desligada/standby.
+      default:
+      selector:
+        entity:
+          domain: media_player
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input sensor
+    to: "on"
+
+variables:
+  tv_player: !input tv_player
+
+condition:
+  - condition: template
+    value_template: >
+      {{ tv_player == none or tv_player == ''
+         or states(tv_player) not in ['off','standby','unavailable','unknown'] }}
+
+action:
+  - service: script.pip_mostrar
+    data:
+      cam: !input camera_stream

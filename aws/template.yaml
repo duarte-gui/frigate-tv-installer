@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Ponte da Alexa Smart Home Skill (self-hosted) para o Home Assistant.
+  Deploy: na região us-east-1 (Alexa). Veja o README.
+
+Parameters:
+  BaseUrl:
+    Type: String
+    Description: URL HTTPS pública do Home Assistant, sem barra no fim (ex. https://ha.seudominio.com)
+    AllowedPattern: ^https://.+[^/]$
+  AlexaSkillId:
+    Type: String
+    Description: Skill ID que pode invocar a Lambda (amzn1.ask.skill....)
+    AllowedPattern: ^amzn1\.ask\.skill\..+
+
+Resources:
+  HomeAssistantAlexaFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: HomeAssistant-Alexa
+      Description: Repassa diretivas da Alexa Smart Home ao /api/alexa/smart_home do HA
+      Runtime: python3.12
+      Handler: lambda_function.lambda_handler
+      CodeUri: src/
+      Timeout: 10
+      MemorySize: 128
+      Architectures: [arm64]
+      Environment:
+        Variables:
+          BASE_URL: !Ref BaseUrl
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill
+          Properties:
+            SkillId: !Ref AlexaSkillId
+
+Outputs:
+  FunctionArn:
+    Description: Use este ARN como "Default endpoint" da sua Smart Home Skill (Amazon Developer Console)
+    Value: !GetAtt HomeAssistantAlexaFn.Arn
