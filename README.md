@@ -52,7 +52,8 @@ Importe por **Configurações → Automações → Blueprints → Importar Bluep
   `homeassistant/blueprints/frigate_camera_por_voz.yaml`
 
 > Os blueprints usam os scripts `script.pip_mostrar` / `pip_desligar` do package
-> [frigate-pip-homeassistant](https://github.com/duarte-gui/frigate-pip-homeassistant).
+> **incluído aqui** em [`homeassistant/packages/frigate_pip.yaml`](homeassistant/packages/frigate_pip.yaml)
+> (copie para `/config/packages/` do seu HA — o `setup.sh` faz isso por você).
 
 ## ☁️ Alexa (skill self-hosted) + Lambda
 
@@ -64,9 +65,9 @@ sam build && sam deploy --guided \
 ```
 
 O passo a passo completo da skill (Login with Amazon, account linking, descoberta e o
-**proactive state reporting** que faz o "desligar" por voz funcionar) está em:
-[homeassistant-alexa-lambda](https://github.com/duarte-gui/homeassistant-alexa-lambda) e
-[frigate-pip-homeassistant](https://github.com/duarte-gui/frigate-pip-homeassistant#cadastro-das-credenciais-passo-a-passo).
+**proactive state reporting** que faz o "desligar" por voz funcionar) está em
+**[docs/CREDENTIALS.md](docs/CREDENTIALS.md)** (e no repo
+[homeassistant-alexa-lambda](https://github.com/duarte-gui/homeassistant-alexa-lambda)).
 
 ## 🔌 Pré-requisitos
 
@@ -77,16 +78,15 @@ O passo a passo completo da skill (Login with Amazon, account linking, descobert
 
 ## 🗺️ Arquitetura e dependências
 
-Veja o **[SYSTEM-OVERVIEW](https://github.com/duarte-gui/frigate-pip-homeassistant/blob/master/SYSTEM-OVERVIEW.md)**
-(mapa de todos os repos e como dependem entre si).
+Veja o **[SYSTEM-OVERVIEW.md](SYSTEM-OVERVIEW.md)** (mapa de todos os repos e como dependem entre si).
 
 | Repositório | Papel |
 |---|---|
 | [Frigate-on-Firestick](https://github.com/duarte-gui/Frigate-on-Firestick) | App PIP (Fire TV) |
 | [FrigateTV4Xiaomi](https://github.com/duarte-gui/FrigateTV4Xiaomi) | App overlay (Android TV) |
-| [frigate-pip-homeassistant](https://github.com/duarte-gui/frigate-pip-homeassistant) | Automações/scripts do HA |
 | [homeassistant-alexa-lambda](https://github.com/duarte-gui/homeassistant-alexa-lambda) | Lambda da skill Alexa |
 | [homeguard](https://github.com/duarte-gui/homeguard) | Firmware ESP32 (sensores/alarme) |
+| `frigate-pip-homeassistant` _(privado)_ | Config HA de referência — o essencial (package + blueprints + credenciais) está **neste repo** |
 
 ## 🔒 Segurança
 
