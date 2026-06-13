@@ -53,8 +53,11 @@ script:
         data: { cam: "{{ states('input_select.camera_pip') }}" }
 
 automation:
+  # Exclusão mútua: ligar uma câmera desliga as outras; o hide só ocorre
+  # quando NENHUMA está ligada (evita esconder ao trocar de câmera).
   - alias: PIP voz - garagem
     id: pip_voz_garagem
+    mode: queued
     trigger:
       - platform: state
         entity_id: input_boolean.pip_garagem
@@ -62,13 +65,24 @@ automation:
       - choose:
           - conditions: "{{ trigger.to_state.state == 'on' }}"
             sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.pip_porta
+                    - input_boolean.pip_rua
               - service: script.pip_mostrar
                 data: { cam: garagem_sub }
         default:
+          - condition: template
+            value_template: >-
+              {{ is_state('input_boolean.pip_garagem','off')
+                 and is_state('input_boolean.pip_porta','off')
+                 and is_state('input_boolean.pip_rua','off') }}
           - service: script.pip_desligar
 
   - alias: PIP voz - porta
     id: pip_voz_porta
+    mode: queued
     trigger:
       - platform: state
         entity_id: input_boolean.pip_porta
@@ -76,13 +90,24 @@ automation:
       - choose:
           - conditions: "{{ trigger.to_state.state == 'on' }}"
             sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.pip_garagem
+                    - input_boolean.pip_rua
               - service: script.pip_mostrar
                 data: { cam: porta_frente_2 }
         default:
+          - condition: template
+            value_template: >-
+              {{ is_state('input_boolean.pip_garagem','off')
+                 and is_state('input_boolean.pip_porta','off')
+                 and is_state('input_boolean.pip_rua','off') }}
           - service: script.pip_desligar
 
   - alias: PIP voz - rua
     id: pip_voz_rua
+    mode: queued
     trigger:
       - platform: state
         entity_id: input_boolean.pip_rua
@@ -90,10 +115,42 @@ automation:
       - choose:
           - conditions: "{{ trigger.to_state.state == 'on' }}"
             sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.pip_garagem
+                    - input_boolean.pip_porta
               - service: script.pip_mostrar
                 data: { cam: rua }
         default:
+          - condition: template
+            value_template: >-
+              {{ is_state('input_boolean.pip_garagem','off')
+                 and is_state('input_boolean.pip_porta','off')
+                 and is_state('input_boolean.pip_rua','off') }}
           - service: script.pip_desligar
+
+  # Reset: se o Xiaomi/TV cair (desligar/standby/sem conexão) por 15s+, zera os
+  # booleans. Assim, ao voltar, "ligar câmera X" é sempre uma transição real.
+  - alias: PIP reset - quando a TV cai
+    id: pip_reset_tv_off
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: media_player.fire_tv
+        to:
+          - "off"
+          - "standby"
+          - "unavailable"
+          - "unknown"
+        for: "00:00:15"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id:
+            - input_boolean.pip_garagem
+            - input_boolean.pip_porta
+            - input_boolean.pip_rua
 
   - alias: PIP auto - pessoa na porta
     id: pip_auto_porta
