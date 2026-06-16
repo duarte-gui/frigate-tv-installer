@@ -1,238 +1,149 @@
-input_select:
-  camera_pip:
-    name: Camera PIP
-    icon: mdi:cctv
-    options:
-      - garagem_sub
-      - porta_frente_2
-      - rua
-    initial: garagem_sub
-
-input_boolean:
-  pip_garagem:
-    name: Camera da garagem
-    icon: mdi:garage
-  pip_porta:
-    name: Camera da porta
-    icon: mdi:door
-  pip_rua:
-    name: Camera da rua
-    icon: mdi:road
+# frigate_pip.yaml — parte MANUAL (scripts + automacoes garagem/intrusao/reset/porta).
+# Os per-camera (input_select/input_boolean/pip_voz_*) ficam em frigate_cameras_generated.yaml (gerado).
 
 mqtt:
   sensor:
-    - name: "Frigate porta pessoas"
-      state_topic: "frigate/porta_frente/person"
-      unique_id: frigate_porta_person_count
-
+  - name: Frigate porta pessoas
+    state_topic: frigate/porta_frente/person
+    unique_id: frigate_porta_person_count
 script:
   pip_mostrar:
     alias: PIP - Mostrar camera
     fields:
       cam:
-        description: "stream go2rtc (garagem_sub, porta_frente_2, rua)"
+        description: stream go2rtc (garagem_sub, porta_frente_2, rua)
         example: garagem_sub
     sequence:
-      - service: androidtv.adb_command
-        target: { entity_id: media_player.fire_tv }
-        data:
-          command: >-
-            am start -n com.frigate.tvx/.ControlActivity --es action show --es cam "{{ cam }}"
-
+    - service: androidtv.adb_command
+      target:
+        entity_id: media_player.fire_tv
+      data:
+        command: am start -n com.frigate.tvx/.ControlActivity --es action show --es
+          cam "{{ cam }}"
   pip_desligar:
     alias: PIP - Desligar
     sequence:
-      - service: androidtv.adb_command
-        target: { entity_id: media_player.fire_tv }
-        data: { command: "am start -n com.frigate.tvx/.ControlActivity --es action hide" }
-
+    - service: androidtv.adb_command
+      target:
+        entity_id: media_player.fire_tv
+      data:
+        command: am start -n com.frigate.tvx/.ControlActivity --es action hide
   pip_ligar_selecionada:
     alias: PIP - Ligar (camera do seletor)
     sequence:
-      - service: script.pip_mostrar
-        data: { cam: "{{ states('input_select.camera_pip') }}" }
-
+    - service: script.pip_mostrar
+      data:
+        cam: '{{ states(''input_select.camera_pip'') }}'
 automation:
-  # Exclusão mútua: ligar uma câmera desliga as outras; o hide só ocorre
-  # quando NENHUMA está ligada (evita esconder ao trocar de câmera).
-  - alias: PIP voz - garagem
-    id: pip_voz_garagem
-    mode: queued
-    trigger:
-      - platform: state
-        entity_id: input_boolean.pip_garagem
-    action:
-      - choose:
-          - conditions: "{{ trigger.to_state.state == 'on' }}"
-            sequence:
-              - service: input_boolean.turn_off
-                target:
-                  entity_id:
-                    - input_boolean.pip_porta
-                    - input_boolean.pip_rua
-              - service: script.pip_mostrar
-                data: { cam: garagem_sub }
-        default:
-          - condition: template
-            value_template: >-
-              {{ is_state('input_boolean.pip_garagem','off')
-                 and is_state('input_boolean.pip_porta','off')
-                 and is_state('input_boolean.pip_rua','off') }}
-          - service: script.pip_desligar
-
-  - alias: PIP voz - porta
-    id: pip_voz_porta
-    mode: queued
-    trigger:
-      - platform: state
-        entity_id: input_boolean.pip_porta
-    action:
-      - choose:
-          - conditions: "{{ trigger.to_state.state == 'on' }}"
-            sequence:
-              - service: input_boolean.turn_off
-                target:
-                  entity_id:
-                    - input_boolean.pip_garagem
-                    - input_boolean.pip_rua
-              - service: script.pip_mostrar
-                data: { cam: porta_frente_2 }
-        default:
-          - condition: template
-            value_template: >-
-              {{ is_state('input_boolean.pip_garagem','off')
-                 and is_state('input_boolean.pip_porta','off')
-                 and is_state('input_boolean.pip_rua','off') }}
-          - service: script.pip_desligar
-
-  - alias: PIP voz - rua
-    id: pip_voz_rua
-    mode: queued
-    trigger:
-      - platform: state
-        entity_id: input_boolean.pip_rua
-    action:
-      - choose:
-          - conditions: "{{ trigger.to_state.state == 'on' }}"
-            sequence:
-              - service: input_boolean.turn_off
-                target:
-                  entity_id:
-                    - input_boolean.pip_garagem
-                    - input_boolean.pip_porta
-              - service: script.pip_mostrar
-                data: { cam: rua }
-        default:
-          - condition: template
-            value_template: >-
-              {{ is_state('input_boolean.pip_garagem','off')
-                 and is_state('input_boolean.pip_porta','off')
-                 and is_state('input_boolean.pip_rua','off') }}
-          - service: script.pip_desligar
-
-  # Reset: se o Xiaomi/TV cair (desligar/standby/sem conexão) por 15s+, zera os
-  # booleans. Assim, ao voltar, "ligar câmera X" é sempre uma transição real.
-  - alias: PIP reset - quando a TV cai
-    id: pip_reset_tv_off
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: media_player.fire_tv
-        to:
-          - "off"
-          - "standby"
-          - "unavailable"
-          - "unknown"
-        for: "00:00:15"
-    action:
-      - service: input_boolean.turn_off
+- alias: PIP reset - quando a TV cai
+  id: pip_reset_tv_off
+  mode: single
+  trigger:
+  - platform: state
+    entity_id: media_player.fire_tv
+    to:
+    - 'off'
+    - standby
+    - unavailable
+    - unknown
+    for: 00:00:15
+  action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id:
+      - input_boolean.pip_garagem
+      - input_boolean.pip_porta
+      - input_boolean.pip_rua
+- alias: PIP auto - pessoa na porta
+  id: pip_auto_porta
+  mode: single
+  trigger:
+  - platform: mqtt
+    topic: frigate/porta_frente/person
+  condition:
+  - condition: template
+    value_template: '{{ trigger.payload | int(0) > 0 }}'
+  - condition: state
+    entity_id: media_player.fire_tv
+    state: playing
+  action:
+  - service: script.pip_mostrar
+    data:
+      cam: porta_frente_2
+  - wait_template: '{{ states(''sensor.frigate_porta_pessoas'') | int(0) == 0 }}'
+    timeout: 00:03:00
+  - service: script.pip_desligar
+- alias: PIP auto - garagem (portao ou presenca)
+  id: pip_auto_garagem
+  mode: single
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.esp32_homeguard_portao_garagem
+    to: 'on'
+  - platform: state
+    entity_id: binary_sensor.esp32_homeguard_presenca_garagem
+    to: 'on'
+  condition:
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: media_player.fire_tv
+      state:
+      - 'off'
+      - standby
+      - unavailable
+      - unknown
+  action:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.pip_garagem
+  - service: script.pip_mostrar
+    data:
+      cam: garagem_sub
+- alias: Alerta intruso - garagem (alarme armado)
+  id: alarme_garagem_intruso
+  mode: single
+  trigger:
+  - platform: state
+    entity_id: binary_sensor.esp32_homeguard_portao_garagem
+    to: 'on'
+  - platform: state
+    entity_id: binary_sensor.esp32_homeguard_presenca_garagem
+    to: 'on'
+  condition:
+  - condition: state
+    entity_id: alarm_control_panel.esp32_homeguard_esp32_homeguard
+    state:
+    - armed_away
+    - armed_home
+    - armed_night
+    - triggered
+  action:
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.pip_garagem
+  - service: script.pip_mostrar
+    data:
+      cam: garagem_sub
+  - repeat:
+      count: 3
+      sequence:
+      - service: notify.send_message
+        continue_on_error: true
         target:
-          entity_id:
-            - input_boolean.pip_garagem
-            - input_boolean.pip_porta
-            - input_boolean.pip_rua
-
-  - alias: PIP auto - pessoa na porta
-    id: pip_auto_porta
-    mode: single
-    trigger:
-      - platform: mqtt
-        topic: "frigate/porta_frente/person"
-    condition:
-      - condition: template
-        value_template: "{{ trigger.payload | int(0) > 0 }}"
-      - condition: state
-        entity_id: media_player.fire_tv
-        state: "playing"
-    action:
-      - service: script.pip_mostrar
-        data: { cam: porta_frente_2 }
-      - wait_template: "{{ states('sensor.frigate_porta_pessoas') | int(0) == 0 }}"
-        timeout: "00:03:00"
-      - service: script.pip_desligar
-
-  - alias: PIP auto - garagem (portao ou presenca)
-    id: pip_auto_garagem
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.esp32_homeguard_portao_garagem
-        to: "on"
-      - platform: state
-        entity_id: binary_sensor.esp32_homeguard_presenca_garagem
-        to: "on"
-    condition:
-      - condition: not
-        conditions:
-          - condition: state
-            entity_id: media_player.fire_tv
-            state:
-              - "off"
-              - "standby"
-              - "unavailable"
-              - "unknown"
-    action:
-      - service: input_boolean.turn_on
-        target: { entity_id: input_boolean.pip_garagem }
-      - service: script.pip_mostrar
-        data: { cam: garagem_sub }
-
-  - alias: Alerta intruso - garagem (alarme armado)
-    id: alarme_garagem_intruso
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.esp32_homeguard_portao_garagem
-        to: "on"
-      - platform: state
-        entity_id: binary_sensor.esp32_homeguard_presenca_garagem
-        to: "on"
-    condition:
-      - condition: state
-        entity_id: alarm_control_panel.esp32_homeguard_esp32_homeguard
-        state:
-          - "armed_away"
-          - "armed_home"
-          - "armed_night"
-          - "triggered"
-    action:
-      - service: input_boolean.turn_on
-        target: { entity_id: input_boolean.pip_garagem }
-      - service: script.pip_mostrar
-        data: { cam: garagem_sub }
-      - repeat:
-          count: 3
-          sequence:
-            - service: notify.send_message
-              continue_on_error: true
-              target: { entity_id: notify.echo_dot_de_guilherme_announce }
-              data: { message: "Alguém não autorizado está na garagem! ALERTA!" }
-            - service: notify.send_message
-              continue_on_error: true
-              target: { entity_id: notify.cozinha_announce }
-              data: { message: "Alguém não autorizado está na garagem! ALERTA!" }
-            - service: notify.send_message
-              continue_on_error: true
-              target: { entity_id: notify.banheiro_announce }
-              data: { message: "Alguém não autorizado está na garagem! ALERTA!" }
-            - delay: "00:00:06"
+          entity_id: notify.echo_dot_de_guilherme_announce
+        data:
+          message: Alguém não autorizado está na garagem! ALERTA!
+      - service: notify.send_message
+        continue_on_error: true
+        target:
+          entity_id: notify.cozinha_announce
+        data:
+          message: Alguém não autorizado está na garagem! ALERTA!
+      - service: notify.send_message
+        continue_on_error: true
+        target:
+          entity_id: notify.banheiro_announce
+        data:
+          message: Alguém não autorizado está na garagem! ALERTA!
+      - delay: 00:00:06

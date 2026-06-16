@@ -1,0 +1,118 @@
+# GERADO AUTOMATICAMENTE por gen_cameras.py — NAO editar a mao.
+# (booleans + seletor + automacoes de voz, com exclusao mutua)
+
+input_select:
+  camera_pip:
+    name: Camera PIP
+    icon: mdi:cctv
+    options:
+      - frente_praia_sub
+      - garagem_sub
+      - porta_frente_2
+      - rua
+    initial: frente_praia_sub
+
+input_boolean:
+  pip_frente_praia:
+    name: "Camera frente praia"
+    icon: mdi:cctv
+  pip_garagem:
+    name: "Camera Garagem"
+    icon: mdi:cctv
+  pip_porta_frente:
+    name: "Camera porta frente"
+    icon: mdi:cctv
+  pip_rua:
+    name: "Camera rua"
+    icon: mdi:cctv
+
+automation:
+  - alias: PIP voz - frente_praia
+    id: pip_voz_frente_praia
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pip_frente_praia
+    action:
+      - choose:
+          - conditions: "{{ trigger.to_state.state == 'on' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.pip_garagem
+                    - input_boolean.pip_porta_frente
+                    - input_boolean.pip_rua
+              - service: script.pip_mostrar
+                data: { cam: frente_praia_sub }
+        default:
+          - condition: template
+            value_template: "{{ is_state('input_boolean.pip_frente_praia','off') and is_state('input_boolean.pip_garagem','off') and is_state('input_boolean.pip_porta_frente','off') and is_state('input_boolean.pip_rua','off') }}"
+          - service: script.pip_desligar
+  - alias: PIP voz - garagem
+    id: pip_voz_garagem
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pip_garagem
+    action:
+      - choose:
+          - conditions: "{{ trigger.to_state.state == 'on' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.pip_frente_praia
+                    - input_boolean.pip_porta_frente
+                    - input_boolean.pip_rua
+              - service: script.pip_mostrar
+                data: { cam: garagem_sub }
+        default:
+          - condition: template
+            value_template: "{{ is_state('input_boolean.pip_frente_praia','off') and is_state('input_boolean.pip_garagem','off') and is_state('input_boolean.pip_porta_frente','off') and is_state('input_boolean.pip_rua','off') }}"
+          - service: script.pip_desligar
+  - alias: PIP voz - porta_frente
+    id: pip_voz_porta_frente
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pip_porta_frente
+    action:
+      - choose:
+          - conditions: "{{ trigger.to_state.state == 'on' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.pip_frente_praia
+                    - input_boolean.pip_garagem
+                    - input_boolean.pip_rua
+              - service: script.pip_mostrar
+                data: { cam: porta_frente_2 }
+        default:
+          - condition: template
+            value_template: "{{ is_state('input_boolean.pip_frente_praia','off') and is_state('input_boolean.pip_garagem','off') and is_state('input_boolean.pip_porta_frente','off') and is_state('input_boolean.pip_rua','off') }}"
+          - service: script.pip_desligar
+  - alias: PIP voz - rua
+    id: pip_voz_rua
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pip_rua
+    action:
+      - choose:
+          - conditions: "{{ trigger.to_state.state == 'on' }}"
+            sequence:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id:
+                    - input_boolean.pip_frente_praia
+                    - input_boolean.pip_garagem
+                    - input_boolean.pip_porta_frente
+              - service: script.pip_mostrar
+                data: { cam: rua }
+        default:
+          - condition: template
+            value_template: "{{ is_state('input_boolean.pip_frente_praia','off') and is_state('input_boolean.pip_garagem','off') and is_state('input_boolean.pip_porta_frente','off') and is_state('input_boolean.pip_rua','off') }}"
+          - service: script.pip_desligar
+
