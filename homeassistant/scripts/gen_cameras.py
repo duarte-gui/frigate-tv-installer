@@ -87,8 +87,9 @@ def build():
             slug, name, icon, stream = ov["slug"], ov["name"], ov["icon"], ov["stream"]
         else:
             slug = slugify(cam_name)
-            # "Camera <nome do Frigate>" -> comando "ligar camera <x>" (prefixo desambigua na Alexa)
-            name = "Camera " + cam_name.replace("_", " ")
+            # "Video <nome do Frigate>" -> "ligar o video da <x>" ("video"+"ligar" evita a
+            # intent de camera/exibir-em-tela da Alexa; "camera"/"mostrar" eram sequestrados)
+            name = "Video " + cam_name.replace("_", " ")
             icon = "mdi:cctv"
             stream = resolve_detect_stream(cam_cfg, streams) or slug
         cams.append({"slug": slug, "name": name, "icon": icon, "stream": stream,

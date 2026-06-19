@@ -14,16 +14,16 @@ input_select:
 
 input_boolean:
   pip_frente_praia:
-    name: "Camera frente praia"
+    name: "Video frente praia"
     icon: mdi:cctv
   pip_garagem:
-    name: "Camera Garagem"
+    name: "Video Garagem"
     icon: mdi:cctv
   pip_porta_frente:
-    name: "Camera porta frente"
+    name: "Video porta frente"
     icon: mdi:cctv
   pip_rua:
-    name: "Camera rua"
+    name: "Video rua"
     icon: mdi:cctv
 
 automation:
